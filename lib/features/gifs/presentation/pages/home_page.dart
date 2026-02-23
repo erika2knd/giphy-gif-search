@@ -2,6 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:giphy_gif_search/core/network/conectivity_provider.dart';
 import '../controllers/gifs_controller.dart';
 import '../widgets/gifs_grid.dart';
@@ -14,25 +15,34 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  final _controller = TextEditingController();
-  final _scrollController = ScrollController();
+  late final TextEditingController _controller;
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _controller = TextEditingController();
+    _scrollController = ScrollController()..addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 300) {
+    if (!_scrollController.hasClients) return;
+
+    final pos = _scrollController.position;
+    if (pos.maxScrollExtent <= 0) return;
+
+    const threshold = 200.0;
+    final nearBottom = pos.pixels >= pos.maxScrollExtent - threshold;
+
+    if (nearBottom) {
       ref.read(gifsControllerProvider.notifier).loadMore();
     }
   }
@@ -42,6 +52,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     final state = ref.watch(gifsControllerProvider);
     final notifier = ref.read(gifsControllerProvider.notifier);
 
+    if (_controller.text != state.query) {
+      _controller.value = _controller.value.copyWith(
+        text: state.query,
+        selection: TextSelection.collapsed(offset: state.query.length),
+        composing: TextRange.empty,
+      );
+    }
+
     final connectivity = ref.watch(connectivityProvider);
     final hasInternet = connectivity.maybeWhen(
       data: (result) => result != ConnectivityResult.none,
@@ -50,11 +68,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Giphy GIF Search"),
+        title: const Text('Giphy GIF Search'),
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
-            onPressed: () => context.push('/favorites'),
+            onPressed: () => context.pushNamed('favorites'),
+            tooltip: 'Favorites',
           ),
         ],
         flexibleSpace: Container(
@@ -72,15 +91,24 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: TextField(
               controller: _controller,
               textInputAction: TextInputAction.search,
-              onChanged: notifier.onQueryChanged, // debounce в контроллере
-              decoration: const InputDecoration(
-                hintText: "Search cute gifs...",
-                prefixIcon: Icon(Icons.search),
+              onChanged: notifier.onQueryChanged,
+              decoration: InputDecoration(
+                hintText: 'Search cute gifs...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: state.query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _controller.clear();
+                          notifier.setQuery('');
+                        },
+                        tooltip: 'Clear',
+                      ),
               ),
             ),
           ),
 
-          // Network availability banner (bonus)
           if (!hasInternet)
             Container(
               width: double.infinity,
@@ -120,7 +148,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   TextButton(
                     onPressed: notifier.retry,
-                    child: const Text("Retry"),
+                    child: const Text('Retry'),
                   ),
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:giphy_gif_search/core/network/dio_providers.dart';
 import 'package:giphy_gif_search/features/gifs/data/giphy_api.dart';
 import 'package:giphy_gif_search/features/gifs/data/gifs_repository.dart';
@@ -14,4 +15,6 @@ final gifsRepositoryProvider = Provider<GifsRepository>((ref) {
   return GifsRepository(api);
 });
 
-final favoritesStorageProvider = Provider((ref) => FavoritesStorage());
+final favoritesStorageProvider = Provider<FavoritesStorage>((ref) {
+  return FavoritesStorage();
+});

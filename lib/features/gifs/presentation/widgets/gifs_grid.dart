@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../data/models/gif_model.dart';
 import 'gif_grid_item.dart';
 
@@ -17,16 +18,25 @@ class GifsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Center(child: Text("No results"));
+      return const Center(
+        child: Text("No results", style: TextStyle(fontSize: 16)),
+      );
     }
 
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    final crossAxisCount = isLandscape ? 4 : 2;
+    final width = MediaQuery.of(context).size.width;
+
+    final crossAxisCount = width > 900
+        ? 4
+        : width > 600
+        ? 3
+        : 2;
 
     return GridView.builder(
       controller: scrollController,
       padding: const EdgeInsets.all(12),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: ClampingScrollPhysics(),
+      ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         crossAxisSpacing: 12,
@@ -36,7 +46,10 @@ class GifsGrid extends StatelessWidget {
       itemCount: items.length + (isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= items.length) {
-          return const Center(child: CircularProgressIndicator());
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
         return GifGridItem(gif: items[index]);
       },

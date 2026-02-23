@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router.dart';
+import 'app_scroll_behavior.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -11,6 +12,7 @@ class App extends StatelessWidget {
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         routerConfig: router,
+        scrollBehavior: AppScrollBehavior(),
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF9C27B0)),
